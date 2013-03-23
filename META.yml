@@ -1,0 +1,26 @@
+---
+abstract: 'Fast, simple message routing'
+author:
+  - 'Dana M. Diederich <diederich@gmail.com>'
+build_requires:
+  Test::More: 0
+configure_requires:
+  Module::Build: 0
+dynamic_config: 1
+generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.120630'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Message-Router
+provides:
+  Message::Router:
+    file: lib/Message/Router.pm
+    version: 0.1
+requires:
+resources:
+  license: http://dev.perl.org/licenses/
+  bugtracker: https://github.com/dana/perl-Message-Router/issues
+  homepage: https://metacpan.org/module/Message::Router
+  repository: git://github.com/dana/perl-Message-Router.git
+version: 0.1
