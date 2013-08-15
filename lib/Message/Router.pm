@@ -1,14 +1,15 @@
 package Message::Router;
+{
+  $Message::Router::VERSION = '1.132270';
+}
 
 use strict;use warnings;
 use Message::Match qw(mmatch);
 use Message::Transform qw(mtransform);
 require Exporter;
-use vars qw($VERSION @ISA @EXPORT_OK $config);
+use vars qw(@ISA @EXPORT_OK $config);
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(mroute mroute_config);
-
-$VERSION = '0.1';
 
 sub mroute_config {
     my $new_config;
@@ -98,6 +99,8 @@ sub mroute {
 1;
 
 __END__
+
+=head1 NAME
 
 Message::Router - Fast, simple message routing
 
