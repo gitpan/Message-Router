@@ -1,6 +1,6 @@
 package Message::Router;
 {
-  $Message::Router::VERSION = '1.132270';
+  $Message::Router::VERSION = '1.132960';
 }
 
 use strict;use warnings;
@@ -20,35 +20,39 @@ sub mroute_config {
             if shift;
         die 'single argument must be a HASH reference'
             if not $new_config or not ref $new_config eq 'HASH';
-        die "passed config must hash an ARRAY 'routes' key"
+        die "passed config must have an ARRAY or HASH 'routes' key"
             if not $new_config->{routes};
-        die "passed config must hash an ARRAY 'routes' key"
-            if not ref $new_config->{routes} eq 'ARRAY';
-        foreach my $route (@{$new_config->{routes}}) {
-            die "each route must be a HASH reference"
-                if not $route;
-            die "each route must be a HASH reference"
-                if not ref $route eq 'HASH';
-            die "each route has to have a HASH reference 'match' key"
-                if not $route->{match};
-            die "each route has to have a HASH reference 'match' key"
-                if not ref $route->{match} eq 'HASH';
-            if($route->{transform}) {
-                die "the optional 'transform' key must be a HASH reference"
-                    if ref $route->{transform} ne 'HASH';
-            }
-            if($route->{forwards}) {
-                die "the optional 'forwards' key must be an ARRAY reference"
-                    if ref $route->{forwards} ne 'ARRAY';
-                foreach my $forward (@{$route->{forwards}}) {
-                    die 'each forward must be a HASH reference'
-                        if not $forward;
-                    die 'each forward must be a HASH reference'
-                        if ref $forward ne 'HASH';
-                    die "each forward must have a scalar 'handler' key"
-                        if not $forward->{handler};
-                    die "each forward must have a scalar 'handler' key"
-                        if ref $forward->{handler};
+        if(     ref $new_config->{routes} ne 'ARRAY' and
+                ref $new_config->{routes} ne 'HASH') {
+            die "passed config must have an ARRAY or HASH 'routes' key"
+        }
+        if(ref $new_config->{routes} eq 'ARRAY') {
+            foreach my $route (@{$new_config->{routes}}) {
+                die "each route must be a HASH reference"
+                    if not $route;
+                die "each route must be a HASH reference"
+                    if not ref $route eq 'HASH';
+                die "each route has to have a HASH reference 'match' key"
+                    if not $route->{match};
+                die "each route has to have a HASH reference 'match' key"
+                    if not ref $route->{match} eq 'HASH';
+                if($route->{transform}) {
+                    die "the optional 'transform' key must be a HASH reference"
+                        if ref $route->{transform} ne 'HASH';
+                }
+                if($route->{forwards}) {
+                    die "the optional 'forwards' key must be an ARRAY reference"
+                        if ref $route->{forwards} ne 'ARRAY';
+                    foreach my $forward (@{$route->{forwards}}) {
+                        die 'each forward must be a HASH reference'
+                            if not $forward;
+                        die 'each forward must be a HASH reference'
+                            if ref $forward ne 'HASH';
+                        die "each forward must have a scalar 'handler' key"
+                            if not $forward->{handler};
+                        die "each forward must have a scalar 'handler' key"
+                            if ref $forward->{handler};
+                    }
                 }
             }
         }
@@ -67,7 +71,15 @@ sub mroute {
             unless ref $message and ref $message eq 'HASH';
         die 'single argument must be a HASH reference'
             if shift;
-        foreach my $route (@{$config->{routes}}) {
+        my @routes;
+        if(ref $config->{routes} eq 'ARRAY') {
+            @routes = @{$config->{routes}};
+        } elsif(ref $config->{routes} eq 'HASH') {
+            foreach my $order (sort { $a <=> $b } keys %{$config->{routes}}) {
+                push @routes, $config->{routes}->{$order};
+            }
+        }
+        foreach my $route (@routes) {
             eval {
                 if(mmatch($message, $route->{match})) {
                     if($route->{transform}) {
@@ -137,11 +149,31 @@ Message::Router - Fast, simple message routing
     });
     mroute({a => 'b'}); #prints 'that', and then 'y', per the handler1 sub
 
+    mroute_config({
+        routes => {
+            10 => {
+                match => {
+                    a => 'b',
+                },
+                forwards => [
+                    {   handler => 'main::handler1',
+                        x => 'y',
+                    },
+                ],
+                transform => {
+                    this => 'that',
+                },
+            }
+        ],
+    });
+    mroute({a => 'b'}); #prints 'that', and then 'y', per the handler1 sub
+    #same as the ARRAY based, but it uses the HASH keys in numerical order
+
 =head1 DESCRIPTION
 
 This library allows fast, flexible and general message routing.
 
-=head1 FUNCTION
+=head1 FUNCTIONS
 
 =head2 mroute_config($config);
 
@@ -154,7 +186,9 @@ Pass $message through the config; this will emit zero or more callbacks.
 =head1 TODO
 
 A config validator.
+
 Short-circuiting
+
 More flexible match and transform configuration forms
 
 =head1 BUGS
@@ -167,7 +201,7 @@ Copyright (c) 2012, 2013 Dana M. Diederich. All Rights Reserved.
 
 =head1 AUTHOR
 
-Dana M. Diederich <diederich@gmail.com>
+Dana M. Diederich <dana@realms.org>
 
 =cut
 

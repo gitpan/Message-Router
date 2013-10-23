@@ -74,20 +74,14 @@ eval {
     mroute_config({});
 };
 ok $@, 'blank config mroute_config failed';
-ok $@ =~ /passed config must hash an ARRAY 'routes' key/, 'blank config to mroute_config failed correctly';
+ok $@ =~ /passed config must have an ARRAY or HASH 'routes' key/, 'blank config to mroute_config failed correctly';
 
 eval {
     mroute_config({ routes => 'smurf' });
 };
 ok $@, 'config mroute_config with non-ARRAY-ref argument failed';
-ok $@ =~ /passed config must hash an ARRAY 'routes' key/, 'config mroute_config with non-ARRAY-ref argument failed correctly';
+ok $@ =~ /passed config must have an ARRAY or HASH 'routes' key/, 'config mroute_config with non-ARRAY-ref argument failed correctly';
 
-
-eval {
-    mroute_config({ routes => {} });
-};
-ok $@, 'config mroute_config with HASH-ref argument failed';
-ok $@ =~ /passed config must hash an ARRAY 'routes' key/, 'config mroute_config with HASH-ref argument failed correctly';
 
 eval {
     mroute_config({ routes => [ {} ] });
