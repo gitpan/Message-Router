@@ -1,9 +1,7 @@
 package Message::Router;
-{
-  $Message::Router::VERSION = '1.132960';
-}
-
+$Message::Router::VERSION = '1.143160';
 use strict;use warnings;
+use Storable;
 use Message::Match qw(mmatch);
 use Message::Transform qw(mtransform);
 require Exporter;
@@ -71,6 +69,45 @@ sub mroute {
             unless ref $message and ref $message eq 'HASH';
         die 'single argument must be a HASH reference'
             if shift;
+        if(     $message->{static_forwards} and
+                ref $message->{static_forwards} and
+                ref $message->{static_forwards} eq 'ARRAY' and
+                scalar @{$message->{static_forwards}}) {
+            my $forward_recs = shift @{$message->{static_forwards}};
+            delete $message->{static_forwards} unless scalar @{$message->{static_forwards}};
+            die 'static_forwards: defined forward must be an ARRAY reference'
+                if not ref $forward_recs or ref $forward_recs ne 'ARRAY';
+            foreach my $forward_rec (@{$forward_recs}) {
+                die 'static_forwards: defined forward must contain a forward that is a HASH reference'
+                    if      not $forward_rec->{forward} or
+                            not ref $forward_rec->{forward} or
+                            ref $forward_rec->{forward} ne 'HASH';
+                my $message = Storable::dclone $message;
+                if($forward_rec->{log_history}) {
+                    $forward_rec = Storable::dclone $forward_rec;
+                    $message->{'.static_forwards_log'} = {
+                        forward_history => []
+                    } unless $message->{'.static_forwards_log'};
+                    push @{$message->{'.static_forwards_log'}->{forward_history}}, $forward_rec;
+                }
+                if(     $forward_rec->{transform} and
+                        ref $forward_rec->{transform} and
+                        ref $forward_rec->{transform} eq 'HASH') {
+                    mtransform($message, $forward_rec->{transform});
+                }
+                eval {
+                    no strict 'refs';
+                    $forward_rec->{forward}->{handler} = 'IPC::Transit::Router::handler'
+                        unless $forward_rec->{forward}->{handler};
+                    &{$forward_rec->{forward}->{handler}}(
+                        message => $message,
+                        forward => $forward_rec->{forward}
+                    );
+                };
+                die "static_forwards: handler failed: $@" if $@;
+            }
+            return 1;
+        }
         my @routes;
         if(ref $config->{routes} eq 'ARRAY') {
             @routes = @{$config->{routes}};
